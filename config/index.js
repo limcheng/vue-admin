@@ -7,8 +7,8 @@ module.exports = {
     index: path.resolve(__dirname, '../dist/index.html'),
     assetsRoot: path.resolve(__dirname, '../dist'),
     assetsSubDirectory: 'static',
-    assetsPublicPath: '/vue-admin/',
-    productionSourceMap: true,
+    assetsPublicPath: './',
+    productionSourceMap: false,
     // Gzip off by default as many popular static hosts such as
     // Surge or Netlify already gzip all static assets for you.
     // Before setting to `true`, make sure to:
@@ -26,8 +26,16 @@ module.exports = {
     port: 8080,
     autoOpenBrowser: true,
     assetsSubDirectory: 'static',
-    assetsPublicPath: '/',
-    proxyTable: {},
+    //assetsPublicPath: '/',
+    assetsPublicPath: '/zhoushan/',
+    proxyTable: {
+//       '/api': {
+//         target: 'http://120.79.9.157:8080/workReport',
+//         pathRewrite: {
+//           '^/api': '/static/moke'
+//         }
+      //}
+    },
     // CSS Sourcemaps off by default because relative paths are "buggy"
     // with this option, according to the CSS-Loader README
     // (https://github.com/webpack/css-loader#sourcemaps)

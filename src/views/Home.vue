@@ -2,7 +2,7 @@
 	<el-row class="container">
 		<el-col :span="24" class="header">
 			<el-col :span="10" class="logo" :class="collapsed?'logo-collapse-width':'logo-width'">
-				{{collapsed?'':sysName}}
+				舟山游客统计系统
 			</el-col>
 			<el-col :span="10">
 				<div class="tools" @click.prevent="collapse">
@@ -11,7 +11,7 @@
 			</el-col>
 			<el-col :span="4" class="userinfo">
 				<el-dropdown trigger="hover">
-					<span class="el-dropdown-link userinfo-inner"><img :src="this.sysUserAvatar" /> {{sysUserName}}</span>
+					<span class="el-dropdown-link userinfo-inner"><img src="../assets/header.jpg" /> {{sysUserName}}</span>
 					<el-dropdown-menu slot="dropdown">
 						<el-dropdown-item>我的消息</el-dropdown-item>
 						<el-dropdown-item>设置</el-dropdown-item>
@@ -72,7 +72,10 @@
 </template>
 
 <script>
+  import { requestLogin, getPointList, getAreaList } from '../api/api';
+  import axios from 'axios';
 	export default {
+    inject: ['reload'],
 		data() {
 			return {
 				sysName:'VUEADMIN',
@@ -112,10 +115,8 @@
 					sessionStorage.removeItem('user');
 					_this.$router.push('/login');
 				}).catch(() => {
-
+          
 				});
-
-
 			},
 			//折叠导航栏
 			collapse:function(){
@@ -123,16 +124,71 @@
 			},
 			showMenu(i,status){
 				this.$refs.menuCollapsed.getElementsByClassName('submenu-hook-'+i)[0].style.display=status?'block':'none';
-			}
+			},
 		},
+    beforeMount() {
+      
+    },
 		mounted() {
-			var user = sessionStorage.getItem('user');
-			if (user) {
-				user = JSON.parse(user);
-				this.sysUserName = user.name || '';
-				this.sysUserAvatar = user.avatar || '';
-			}
-
+      var user = sessionStorage.getItem('user');
+      var token = sessionStorage.getItem('token');
+      var userName = sessionStorage.getItem('userName');
+      var pwd = sessionStorage.getItem('pwd');
+      var code = sessionStorage.getItem('code');
+      if (user) {
+        user = JSON.parse(user);
+        this.sysUserName = user.name || '';
+        this.sysUserAvatar = '../assets/header.jpg';
+      }
+//       if(code === 666){
+//         this.$router.push({ path: '/Login' });
+//       }
+      //token失效则自动重新登录，并存储token
+//       if (!token || code === "666") {
+//         console.log(token);
+//         var _this = this;
+//         this.logining = true;
+//         //NProgress.start();
+//         var loginParams = { username: userName, password: pwd };
+//         requestLogin(loginParams).then(data => {
+//           this.logining = false;
+//           //NProgress.done();
+//           let { msg, code, user } = data;
+//           if (code !== 200) {
+//             this.$message({
+//               message: msg,
+//               type: 'error'
+//             });
+//           } else {
+//             console.log(loginParams)
+//             //sessionStorage.setItem('user', JSON.stringify(user));
+//             sessionStorage.setItem('token', data.token);
+//             //this.$router.push({ path: '/echarts' });
+//           }
+//         });
+//     }
+      axios.interceptors.response.use(function (response) { // ①10010 token过期（30天） ②10011 token无效
+        console.log(response)
+        //let code = sessionStorage.getItem('code');
+        if(sessionStorage.getItem('code') === 666) {
+          console.log(0)
+          router.replace({
+            path: '/login' // 到登录页重新获取token
+          })
+        }else if (response.code === 666 ) {
+          //Storage.localRemove('token') // 删除已经失效或过期的token（不删除也可以，因为登录后覆盖）
+          console.log(1)
+          router.replace({
+            path: '/login' // 到登录页重新获取token
+          })
+        }else if (response.data.token) { // 判断token是否存在，如果存在说明需要更新token
+        console.log("2")
+          sessionStorage.setItem('token', response.data.token) // 覆盖原来的token(默认一天刷新一次)
+        }
+        return response
+      }, function (error) {
+          return Promise.reject(error)
+      })
 		}
 	}
 
