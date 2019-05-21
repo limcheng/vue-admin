@@ -7,7 +7,10 @@ import user from './views/nav1/user.vue'
 import point from './views/nav1/point.vue'
 import notice from './views/nav1/notice.vue'
 import admin from './views/nav1/admin.vue'
+import noRole from './views/nav1/noRole.vue'
 import report from './views/nav3/report.vue'
+import echarts from './views/charts/echarts.vue'
+import chart from './views/charts/chart.vue'
 
 let routes = [
     {
@@ -34,6 +37,7 @@ let routes = [
             { path: '/point', component: point, name: '咨询点' },
             { path: '/admin', component: admin, name: '管理员' },
             { path: '/user', component: user, name: '用户列表' },
+            { path: '/noRole', component: noRole, name: '无权限访问', hidden: true },
         ]
     },
     {
@@ -44,6 +48,16 @@ let routes = [
         leaf: true,//只有一个节点
         children: [
             { path: '/report', component: report, name: '报表汇总' }
+        ]
+    },
+    {
+        path: '/',
+        component: Home,
+        name: '每月汇总图',
+        iconCls: 'fa fa-bar-chart',
+        leaf: true,//只有一个节点
+        children: [
+            { path: '/echarts', component: echarts, name: '报表汇总图' },
         ]
     },
     {

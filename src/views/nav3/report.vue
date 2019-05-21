@@ -2,7 +2,6 @@
 	<section>
 		<!--工具条-->
 		<el-col :span="24" class="toolbar" style="padding-bottom: 0px;">
-      
 			<el-form :inline="true" :model="filters">
         <el-form-item label="开始时间">
         	<el-date-picker type="date" placeholder="选择日期" v-model="filters.startTime"></el-date-picker>
@@ -64,7 +63,7 @@
             <el-form-item label="" id="form-table" class="formtable">
               <ul v-for="item in props.row.content" class="">
                 <li class="liItem">
-                  <div>电话投诉内容: 
+                  <div class="border-right">电话投诉内容: 
                     <p>{{item.consultContent}}</p>
                   </div>
                   <div>反馈内容: 
@@ -102,18 +101,14 @@
 
 		<!--工具条-->
     <el-col :span="24" class="toolbar">
-    	<el-pagination layout="prev, pager, next" @current-change="handleCurrentChange" :index-size="20" :total="total" style="float:right;">
+    	<el-pagination 
+        layout="prev, pager, next" 
+        @current-change="handleCurrentChange" 
+        :page-size="20" 
+        :total="total" 
+        style="float:right;">
     	</el-pagination>
     </el-col>
-		<!-- <el-col :span="24" class="toolbar">
-			<el-pagination
-        layout="prev, pager, next"
-        @current-change="handleCurrentChange"
-        :page-size="20" 
-        :total="total"
-        style="float:right;">
-			</el-pagination>
-		</el-col> -->
 
 		<!--编辑界面-->
 		<el-dialog title="编辑" v-model="editFormVisible" :close-on-click-modal="false">
@@ -151,12 +146,32 @@
         <el-form-item label="上报日期">
         	<el-date-picker type="date" placeholder="选择日期" v-model="editForm.reportTime"></el-date-picker>
         </el-form-item>
-<!-- 				<el-form-item label="投诉内容">
-					<el-input type="textarea" v-model="editForm.consultContent" placeholder="投诉电话内容"></el-input>
-				</el-form-item>
-        <el-form-item label="反馈内容">
-        	<el-input type="textarea" v-model="editForm.replyContent" placeholder="投诉反馈内容"></el-input>
-        </el-form-item> -->
+				<el-form-item label="内容详情">
+          <ul v-for="(item,index) in editForm.content" key="{{index}}">
+            <li class="liItem">
+              <div> 
+                <p>电话投诉内容: </p>
+                <el-input 
+                   class="textarea" 
+                   type="textarea" 
+                   :rows="5"
+                   v-model="editForm.content[index].consultContent" 
+                   placeholder="投诉反馈内容"
+                 ></el-input>
+              </div>
+              <div>
+                <p>反馈内容: </p>
+                <el-input 
+                  class="textarea" 
+                  type="textarea" 
+                  :rows="5"
+                  v-model="editForm.content[index].replyContent" 
+                  placeholder="投诉反馈内容"
+                ></el-input>
+              </div>
+            </li>
+          </ul>
+        </el-form-item>
 			</el-form>
 			<div slot="footer" class="dialog-footer">
 				<el-button @click.native="editFormVisible = false">取消</el-button>
@@ -216,6 +231,7 @@
 </template>
 
 <script>
+  import echarts from 'echarts'
 	import util from '../../common/js/util'
 	import { getReportPage, removeReport, getAreaList, getPointList, editReport, addReport, getReportList } from '../../api/api';
 
@@ -230,9 +246,9 @@
           startTime: '',
           endTime: '',
 				},
+        content: [],
         area: 'null',  //选中的地区id
         alldata: {  //总数
-          complaintTotal: 0,
         },
         areaList: null,  //地区列表
         campsiteList: null,  //页面绑定的咨询点列表
@@ -240,12 +256,13 @@
         data: {},  
 				reports: null,  //报表项
 				total: 0,
-				index: 1,
-				size: 10,
+				index: 0,
+				size: 20,
+        //pageNum: 5,
         showArea: false,  //根据权限判断是否显示area选项
 				listLoading: false,  //加载状态
 				sels: [],//列表选中列
-
+        showerr: false,
 				editFormVisible: false,//编辑界面是否显示
 				editLoading: false,  
 				editFormRules: {  //编辑页面规则
@@ -261,7 +278,10 @@
           "complaintNum": 0,
           "consult": "string",
           "consultNum": 0,
-          "content": [{},{}],
+          "content": [
+            [{consultContent: "12"},{rapalyContent: "13"}],
+            [{consultContent: "23"},{rapalyContent: "67"}],
+          ],
           "id": "string",
           "name": "string",
           "receptionNum": 0,
@@ -281,28 +301,30 @@
 					consult: { required: true, message: '请输入咨询点', trigger: 'blur' },
 				},
 				//新增界面数据
-				addForm: {  
-					"area": "",
-          "complaintNum": 0,
-          "consult": "",
-          "consultNum": 0,
-          "content": [{},{}],
-          "id": "",
-          "name": "",
-          "receptionNum": 0,
-          "reportTime": "2019-04-27T08:12:36.414Z",
-          "user": "",
-          "consultContent": "",
-          "replyContent": "",
-				}
+// 				addForm: {  
+// 					"area": "",
+//           "complaintNum": 0,
+//           "consult": "",
+//           "consultNum": 0,
+//           "content": [{},{}],
+//           "id": "",
+//           "name": "",
+//           "receptionNum": 0,
+//           "reportTime": "2019-04-27T08:12:36.414Z",
+//           "user": "",
+//           "consultContent": "",
+//           "replyContent": "",
+// 				}
 			}
 		},
 		methods: {
 			handleCurrentChange(val) {
-				this.index = val;
-        console.log()
-				this.getReport();
+        var that = this
+				that.index = val;
+        console.log(that.index)
+				that.getReport();
 			},
+
        getArea() {
         getAreaList().then((res) => {
           let list = res.data.data;
@@ -313,8 +335,7 @@
       //获取咨询点列表
       getConsult() {
         let para = {
-          index: this.index, 
-          size: this.size,
+
         };
         getPointList(para).then((res) => {
           let list = res.data.data;
@@ -324,7 +345,7 @@
           user = JSON.parse(user)  //获取用户所在地区id
           let role = user.role;  //获取用户权限
           let pointlist = [];
-          this.total = res.data.total;
+        
           let campsite = this.campsiteList;
           if(role === 0) {
             pointlist = list;
@@ -350,9 +371,17 @@
         var that = this
         //判断请求是否携带参数---带参数为查询
 				let para = {
-          index: this.index, 
+          index: (this.index-1)*this.size, 
           size: this.size, 
         };
+        let user = sessionStorage.getItem("user");  //获得管理员信息
+        let role = JSON.parse(user).role;
+        if(role === 0) {  //判断是否为超级管理员，  0为超级管理员
+          that.showArea = true;
+        }else {
+          let area = JSON.parse(user).area;  //获取用户所在的地区id
+          para.area = area
+        }
         if(that.filters.endTime != '') {
           para.end = that.filters.endTime;
           para.end = (!para.end || para.end == '') ? '' : util.formatDate.format(new Date(para.end),'yyyy-MM-dd');
@@ -369,38 +398,35 @@
         }
         //发送获得报表请求
 				getReportPage(para).then((res) => {
+          that.listLoading = false;
           let code = res.data.code;  //获取状态码
           let all = res.data.data;  //报表的所有数据--含总数
-          this.total = res.data.total;
+          that.total = res.data.total;
           if(code == "666") {
             that.$router.push({ path: '/Login' });
           }
           if(code == 201) {
-            that.$notify.error({
-              title: '错误',
-              message: '请求内容为空'
-            });
+            this.reports = []
           }
           let list = res.data.data.reports;  //报表列
           let areaList = that.areaList ; //获得地区列表
           let consultList = that.consultList ; //获得咨询点列表
-          let user = sessionStorage.getItem("user");  //获得管理员信息
-          let role = JSON.parse(user).role;
-          let reportList = [];  //定义所要显示的报表信息
+          let reportList = list;  //定义所要显示的报表信息
           
-          if(role === 0) {  //判断是否为超级管理员，  0为超级管理员
-            reportList = list;
-            that.showArea = true;
-          }else {
-            that.showArea = false;
-            let area = JSON.parse(user).area;  //获取用户所在的地区id
-            for(let item of list) {  //把报表中在该地区的报表显示
-              if(item.area === area) {
-                reportList.push(item);
-              }
-            }
-          }
+//           if(role === 0) {  //判断是否为超级管理员，  0为超级管理员
+//             reportList = list;
+//             that.showArea = true;
+//           }else {
+//             that.showArea = false;
+//             let area = JSON.parse(user).area;  //获取用户所在的地区id
+//             for(let item of list) {  //把报表中在该地区的报表显示
+//               if(item.area === area) {
+//                 reportList.push(item);
+//               }
+//             }
+//           }
           that.alldata = all;
+          that.reports = reportList;
           for(let item of reportList) {
             let contents = item.content;  //投诉和反馈内容
             let area = item.area;
@@ -420,14 +446,19 @@
               }
             }
             item.content = JSON.parse(contents);  //将内容转成json对象
+//             for (let cont of item.content) {
+//               console.log(cont.consultContent)
+//               cont.consultContent = cont.consultContent.replace(/\r\n/g, "<br/>")
+//               cont.replyContent = cont.replyContent.replace(/\r\n/g, "<br/>")
+//             }
             item.reportTime = (!item.reportTime || item.reportTime == '') ? '' : util.formatDate.format(new Date(item.reportTime), 'yyyy-MM-dd');  // 转换时间的格式
           }
-          that.reports = reportList;
-					that.listLoading = false;
+          setTimeout(function() {
+            that.reports = reportList;
+          }, 800)			
 				});
 			},
        //获取地区列表
-     
       chooseArea(e) {
         let arealist = this.areaList;
         this.campsiteList = [];
@@ -465,36 +496,49 @@
 				this.editForm = Object.assign({}, row);
 			},
 			//显示新增界面
-			handleAdd: function () {
-				this.addFormVisible = true;
-				this.addForm = {
-					"area": "",
-          "complaintNum": 0,
-          "consult": "",
-          "content": null,
-          "consultNum": 0,
-          "id": "",
-          "name": "",
-          "receptionNum": 0,
-          "reportTime": "2019-04-27T08:12:36.414Z",
-          "user": "string",
-          "consultContent": "",
-          "replyContent": "",
-				};
-			},
+// 			handleAdd: function () {
+// 				this.addFormVisible = true;
+// 				this.addForm = {
+// 					"area": "",
+//           "complaintNum": 0,
+//           "consult": "",
+//           "content": null,
+//           "consultNum": 0,
+//           "id": "",
+//           "name": "",
+//           "receptionNum": 0,
+//           "reportTime": "2019-04-27T08:12:36.414Z",
+//           "user": "string",
+//           "consultContent": "",
+//           "replyContent": "",
+// 				};
+// 			},
 			//编辑
-			editSubmit: function () {
+			editSubmit: function (e) {
+        var that = this
 				this.$refs.editForm.validate((valid) => {
 					if (valid) {
 						this.$confirm('确认提交吗？', '提示', {}).then(() => {
 							this.editLoading = true;
-							let para = Object.assign({}, this.editForm);
-              //let content = {};
-              var content = [{consultContent: para.consultContent, replyContent: para.replyContent}];
-              content = JSON.stringify(content);
-              para.content = content;
+							let para = Object.assign({}, that.editForm);
+              var contents = '';
+              contents = JSON.stringify(para.content);
+              para.content = contents;
+              if(this.areaList) {
+                for(let areaItem of this.areaList) {
+                  if(areaItem.name === para.area) {
+                    para.area = areaItem.id
+                  }
+                }
+              }
+              if(this.consultList) {
+                for(let consultItem of this.consultList) {
+                  if(consultItem.name == para.consult) {
+                    para.consult = consultItem.id
+                  }
+                }
+              }
 							para.reportTime = (!para.reportTime || para.reportTime == '') ? '' : util.formatDate.format(new Date(para.reportTime), 'yyyy-MM-dd');
-              console.log(para);
 							editReport(para).then((res) => {
 								this.editLoading = false;
 								this.$message({
@@ -509,53 +553,49 @@
 					}
 				});
 			},
-			//新增
-			addSubmit: function () {
-				this.$refs.addForm.validate((valid) => {
-					if (valid) {
-						this.$confirm('确认提交吗？', '提示', {}).then(() => {
-							this.addLoading = true;
-							let para = Object.assign({}, this.addForm);
-              //console.log(para);
-              var content = [{consultContent: para.consultContent, replyContent: para.replyContent}];
-              content = JSON.stringify(content);
-              para.content = content;
-							para.reportTime = (!para.reportTime || para.reportTime == '') ? '' : util.formatDate.format(new Date(para.reportTime), 'yyyy-MM-dd');
-              console.log(para);
-              //var par = JSON.stringify(para);
-              //console.log(par);
-							addReport(para).then((res) => {
-                //console.log(para);
-                //console.log(res);
-								this.addLoading = false;
-								this.$message({
-									message: '提交成功',
-									type: 'success'
-								});
-								this.$refs['addForm'].resetFields();
-								this.addFormVisible = false;
-								this.getReport();
-							});
-						});
-					}
-				});
-			},
+//新增
+// 			addSubmit: function () {
+// 				this.$refs.addForm.validate((valid) => {
+// 					if (valid) {
+// 						this.$confirm('确认提交吗？', '提示', {}).then(() => {
+// 							this.addLoading = true;
+// 							let para = Object.assign({}, this.addForm);
+//               //console.log(para);
+//               var content = [{consultContent: para.consultContent, replyContent: para.replyContent}];
+//               content = JSON.stringify(content);
+//               para.content = content;
+// 							para.reportTime = (!para.reportTime || para.reportTime == '') ? '' : util.formatDate.format(new Date(para.reportTime), 'yyyy-MM-dd');
+//               console.log(para);
+//               //var par = JSON.stringify(para);
+//               //console.log(par);
+// 							addReport(para).then((res) => {
+//                 //console.log(para);
+//                 //console.log(res);
+// 								this.addLoading = false;
+// 								this.$message({
+// 									message: '提交成功',
+// 									type: 'success'
+// 								});
+// 								this.$refs['addForm'].resetFields();
+// 								this.addFormVisible = false;
+// 								this.getReport();
+// 							});
+// 						});
+// 					}
+// 				});
+// 			},
 			selsChange: function (sels) {
 				this.sels = sels;
-        //console.log(sels)
 			},
 		},
     beforeMount() {
-      console.log(sessionStorage.getItem("token"))
+      this.getArea();
+      this.getConsult();
     },
 		mounted() {
-      console.log(sessionStorage.getItem("token"))
       setTimeout(() => {
-        this.getArea();
-        this.getConsult();
         this.getReport();
-       // this.reload();
-      }, 1000)
+      }, 500)
       
 		}
 	}
@@ -596,11 +636,42 @@
     display: -ms-flexbox;
     display: flex;
   }
-  .liItem div {
-    width: 50%;
-    paddng-right: 10px;
+  /* 投诉内容列表 */
+  ul{
+    margin: 0;
+    padding: 0;
   }
-  .liItem p {
+  .liItem {
+    margin-top: 10px;
+    padding: 10px 0;
+    list-style: none;
+    border: 1px solid #DFE6EC;
+    border-radius: 6px;
+  }
+  .liItem .contents {
+    box-sizing: border-box;
+    padding: 0 8px;
+    line-height: 24px;
+    border: 1px solid #DFE6EC;
+    border-radius: 6px;
+  }
+  .liItem div {
+    box-sizing: border-box;
+    padding-left: 1%;
+    width: 100%;
+    vertical-align: top;
+  }
+  .liItem p{
+    margin: 0;
+    color: #666;
+    font-weight: 0;
+    line-height: 22px;
+    text-indent: 2em;
+  }
+  .border-right {
+    border-right: 1px solid #ccc;
+  }
+  .liItem input {
     maring-right: 20px;
     padding-right: 20px;
     text-indent: 2em;

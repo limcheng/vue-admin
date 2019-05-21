@@ -1,20 +1,69 @@
 <template>
     <section class="chart-container">
         <el-row>
+            <el-col :span="24" class="toolbar" style="padding-bottom: 0px;">
+            	<el-form :inline="true" :model="filters">
+                <!-- <el-form-item label="开始时间">
+                	<el-date-picker 
+                        type="date" 
+                        :picker-options="pickerOptions0"
+                        placeholder="选择日期" 
+                        v-model="filters.startTime"
+                    ></el-date-picker>
+                </el-form-item>
+                <el-form-item label="结束时间">
+                	<el-date-picker 
+                        type="date" 
+                        :picker-options="pickerOptions0"
+                        placeholder="选择日期" 
+                        v-model="filters.endTime"
+                    ></el-date-picker>
+                </el-form-item> -->
+                <el-form-item label="选择月份">
+                    <el-date-picker
+                      v-model="filters.month"
+                      type="month"
+                      :picker-options="pickerOptions0"
+                      placeholder="选择月">
+                    </el-date-picker>
+                </el-form-item>
+                <el-form-item label="区域" prop="area" v-if="showArea">
+                	<el-select 
+                    v-model="filters.area" 
+                    placeholder="全部" 
+                    clearable 
+                    @change="chooseArea"
+                  >
+                	  <el-option v-for="item in areaList" 
+                	             :key="item.id" 
+                	             :label="item.name" 
+                	             :value="item.id">
+                	  </el-option>
+                	</el-select>
+                </el-form-item>
+                <el-form-item label="咨询点" prop="consult">
+                	<el-select
+                    v-model="filters.consult"
+                    clearable 
+                    placeholder="全部"
+                 >
+                	<el-option v-for="item in campsiteList" 
+                             :key="item.id" 
+                             :label="item.name" 
+                             :value="item.id">
+                	  </el-option>
+                	</el-select>
+                </el-form-item>
+            		<el-form-item>
+            			<el-button type="primary" v-on:click="drawColumnChart">查询</el-button>
+            		</el-form-item>
+            	</el-form>
+            </el-col>
             <el-col :span="12">
                 <div id="chartColumn" style="width:100%; height:400px;"></div>
             </el-col>
             <el-col :span="12">
-                <div id="chartBar" style="width:100%; height:400px;"></div>
-            </el-col>
-            <el-col :span="12">
-                <div id="chartLine" style="width:100%; height:400px;"></div>
-            </el-col>
-            <el-col :span="12">
                 <div id="chartPie" style="width:100%; height:400px;"></div>
-            </el-col>
-            <el-col :span="24">
-                <a href="http://echarts.baidu.com/examples.html" target="_blank" style="float: right;">more>></a>
             </el-col>
         </el-row>
     </section>
@@ -22,181 +71,274 @@
 
 <script>
     import echarts from 'echarts'
+    import util from '../../common/js/util'
+    import { getReportPage, removeReport, getAreaList, getPointList, editReport, addReport, getReportList } from '../../api/api';
+    
 
     export default {
         data() {
             return {
+                pickerOptions0: {
+                  disabledDate(time) {
+                    return time.getTime() > Date.now() - 8.64e6;//如果没有后面的-8.64e6就是不可以选择今天的
+                  }
+                }, 
+                
                 chartColumn: null,
                 chartBar: null,
                 chartLine: null,
-                chartPie: null
+                chartPie: null,
+                
+                filters: {
+                  name: '',
+                  area: '',
+                  consult: '',
+                  startTime: '',
+                  endTime: '',
+                  month: '',
+                },
+                
+                showArea: false,
+                areaList: null,  //地区列表
+                campsiteList: null,  //页面绑定的咨询点列表
+                consultList: null,  //咨询点列表
+                area: 'null',  //选中的地区id
             }
         },
 
         methods: {
+             async getArea() {
+                getAreaList().then((res) => {
+                  let list = res.data.data;
+                  this.areaList = list;
+                  sessionStorage.setItem("areaList", this.areaList)
+                  //this.getConsult()
+                });
+            },
+              //获取咨询点列表
+            async  getConsult() {
+                let para = {
+        
+                };
+                getPointList(para).then((res) => {
+                  let list = res.data.data;
+                  this.consultList = list;  //地区列表
+                  let area = this.area;  //获得选中的地区
+                  let user = sessionStorage.getItem("user");
+                  user = JSON.parse(user)  //获取用户所在地区id
+                  let role = user.role;  //获取用户权限
+                  let pointlist = [];
+                  console.log(this.consultList)
+                  let campsite = this.campsiteList;
+                  if(role === 0) {
+                    pointlist = list;
+                    for(let item of pointlist) {
+                      if(item.area === area) {
+                        campsite.push(item);
+                      }
+                    }
+                    this.campsiteList = campsite;
+                  }else{
+                    let userareaid = user.area;
+                    for(let item of res.data.data) {
+                      if(item.area === userareaid) {
+                        pointlist.push(item);
+                      }
+                    }
+                    this.campsiteList = pointlist;
+                  } 
+                });
+              },
+              //获取地区列表
+            chooseArea(e) {
+              let arealist = this.areaList;
+              this.campsiteList = [];
+              for(let item of arealist) {
+                if(item.id === e) {
+                  this.area = item.id;
+                }
+              }
+              this.getConsult();
+            },
             drawColumnChart() {
-                this.chartColumn = echarts.init(document.getElementById('chartColumn'));
-                this.chartColumn.setOption({
-                  title: { text: 'Column Chart' },
-                  tooltip: {},
-                  xAxis: {
-                      data: ["衬衫", "羊毛衫", "雪纺衫", "裤子", "高跟鞋", "袜子"]
-                  },
-                  yAxis: {},
-                  series: [{
-                      name: '销量',
-                      type: 'bar',
-                      data: [5, 20, 36, 10, 10, 20]
-                    }]
-                });
-            },
-            drawBarChart() {
-                this.chartBar = echarts.init(document.getElementById('chartBar'));
-                this.chartBar.setOption({
-                    title: {
-                        text: 'Bar Chart',
-                        subtext: '数据来自网络'
-                    },
-                    tooltip: {
-                        trigger: 'axis',
-                        axisPointer: {
-                            type: 'shadow'
-                        }
-                    },
-                    legend: {
-                        data: ['2011年', '2012年']
-                    },
-                    grid: {
-                        left: '3%',
-                        right: '4%',
-                        bottom: '3%',
-                        containLabel: true
+                var that = this;
+                var list = [];
+                let user = sessionStorage.getItem("user");  //获得管理员信息
+                let role = JSON.parse(user).role;
+                
+                /* 获取上个月的开始和结束日期 */
+                var nowdays = new Date();
+                var year = nowdays.getFullYear();
+                var month = nowdays.getMonth() + 1;
+//                 if(month==0){
+//                   month=12;
+//                   year=year-1;
+//                 }
+                if (month < 10) {
+                  month = "0" + month;
+                }
+                /* end 获取上个月的开始和结束日期 */
+                let para = {}
+                console.log(that.filters.month)
+                if(that.filters.month) {
+                    para.month = that.filters.month;
+                    para.month = (!para.month || para.month == '') ? '' : util.formatDate.format(new Date(para.month),'yyyy-MM');
+                    month = para.month.slice(5,7);
+                }else {
+                  para.month = month
+                }
+//                 if(that.filters.startTime && that.filters.endTime ) {
+//                     para.start = that.filters.startTime;
+//                     para.end = that.filters.endTime;
+//                     para.start = (!para.start || para.start == '') ? '' : util.formatDate.format(new Date(para.start),'yyyy-MM-dd');
+//                     para.end = (!para.end || para.end == '') ? '' : util.formatDate.format(new Date(para.end),'yyyy-MM-dd');
+//                     month = para.start.slice(5,7);
+//                     console.log(month)
+//                 }else {
+//                   para.start = firstDay
+//                   para.end = endDay
+//                 }
+                if(role === 0) {  //判断是否为超级管理员，  0为超级管理员
+                  that.showArea = true;
+                  if(that.filters.area != '') {
+                    para.area = that.filters.area;
+                  }
+                }else{
+                    that.showArea = false;
+                    let area = JSON.parse(user).area;
+                    para.area = area;
+                }
+                if(that.filters.consult != '') {
+                  para.consult = that.filters.consult;
+                }
+                getReportPage(para).then((res) => {
+                  let data = res.data.data
+                  let code = res.data.code
+                  console.log(data)
+                  if(code == "666") {
+                    that.$router.push({ path: '/Login' });
+                  }
+                  if(res.data.code === 201) {
+                    list = []
+                  }
+                  if(!data) {
+                    list = []
+                  }else{
+                    list.push(data.consultTotal)
+                    list.push(data.receptionTotal)
+                    list.push(data.complaintTotal)
+                  }
+                  
+                  //开始柱状绘图
+                  this.chartColumn = echarts.init(document.getElementById('chartColumn'));
+                  const colors = ['#5793f3', '#675bba', '#d14a61'];
+                  this.chartColumn.setOption({
+                    color: colors,
+                    title: { text: `${year}年${month}月数据汇总` },
+                    tooltip: {},
+                    toolbox: {
+                      //show: true,
+                      feature: {
+                        dataZoom: {
+                          yAxisIndex: 'none'
+                        },
+                        dataView: {readOnly: false},
+                        magicType: {type: ['bar', 'line']},
+                        restore: {},
+                      }
                     },
                     xAxis: {
-                        type: 'value',
-                        boundaryGap: [0, 0.01]
+                        type: 'category',
+                        data: ["总咨询数", "总接待数", "总投诉数"]
                     },
                     yAxis: {
-                        type: 'category',
-                        data: ['巴西', '印尼', '美国', '印度', '中国', '世界人口(万)']
-                    },
-                    series: [
-                        {
-                            name: '2011年',
-                            type: 'bar',
-                            data: [18203, 23489, 29034, 104970, 131744, 630230]
-                        },
-                        {
-                            name: '2012年',
-                            type: 'bar',
-                            data: [19325, 23438, 31000, 121594, 134141, 681807]
+                        axisLabel: {
+                            formatter: '{value}'
                         }
-                    ]
-                });
-            },
-            drawLineChart() {
-                this.chartLine = echarts.init(document.getElementById('chartLine'));
-                this.chartLine.setOption({
-                    title: {
-                        text: 'Line Chart'
                     },
-                    tooltip: {
-                        trigger: 'axis'
-                    },
-                    legend: {
-                        data: ['邮件营销', '联盟广告', '搜索引擎']
-                    },
-                    grid: {
-                        left: '3%',
-                        right: '4%',
-                        bottom: '3%',
-                        containLabel: true
-                    },
-                    xAxis: {
-                        type: 'category',
-                        boundaryGap: false,
-                        data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
-                    },
-                    yAxis: {
-                        type: 'value'
-                    },
-                    series: [
-                        {
-                            name: '邮件营销',
-                            type: 'line',
-                            stack: '总量',
-                            data: [120, 132, 101, 134, 90, 230, 210]
-                        },
-                        {
-                            name: '联盟广告',
-                            type: 'line',
-                            stack: '总量',
-                            data: [220, 182, 191, 234, 290, 330, 310]
-                        },
-                        {
-                            name: '搜索引擎',
-                            type: 'line',
-                            stack: '总量',
-                            data: [820, 932, 901, 934, 1290, 1330, 1320]
-                        }
-                    ]
-                });
-            },
-            drawPieChart() {
-                this.chartPie = echarts.init(document.getElementById('chartPie'));
-                this.chartPie.setOption({
-                    title: {
-                        text: 'Pie Chart',
-                        subtext: '纯属虚构',
-                        x: 'center'
-                    },
-                    tooltip: {
-                        trigger: 'item',
-                        formatter: "{a} <br/>{b} : {c} ({d}%)"
-                    },
-                    legend: {
-                        orient: 'vertical',
-                        left: 'left',
-                        data: ['直接访问', '邮件营销', '联盟广告', '视频广告', '搜索引擎']
-                    },
-                    series: [
-                        {
-                            name: '访问来源',
-                            type: 'pie',
-                            radius: '55%',
-                            center: ['50%', '60%'],
-                            data: [
-                                { value: 335, name: '直接访问' },
-                                { value: 310, name: '邮件营销' },
-                                { value: 234, name: '联盟广告' },
-                                { value: 135, name: '视频广告' },
-                                { value: 1548, name: '搜索引擎' }
-                            ],
-                            itemStyle: {
-                                emphasis: {
-                                    shadowBlur: 10,
-                                    shadowOffsetX: 0,
-                                    shadowColor: 'rgba(0, 0, 0, 0.5)'
+                    series: [{
+                        name: `${year}年${month}月数据汇总`,
+                        type: 'bar',
+                        data: list,
+                        itemStyle: {
+                            normal: {
+                                color: '#20A0FF',//设置柱子颜色
+                                label: {
+                                    show: true,//柱子上显示值
+                                    position: 'top',//值在柱子上方显示
+                                    textStyle: {
+                                        color: '#FD6B71'//值得颜色
+                                    }
                                 }
                             }
-                        }
-                    ]
-                });
+                        },
+                        barWidth: 30//设置柱子宽度，单位为px
+                    }],
+                  });
+                   //开始饼状绘图
+                  this.chartPie = echarts.init(document.getElementById('chartPie'));
+                  this.chartPie.setOption({
+//                       title: {
+//                           text: '饼状图',
+//                           x: 'center'
+//                       },
+                      tooltip: {
+                          trigger: 'item',
+                          formatter: "{a} <br/>{b} : {c} ({d}%)"
+                      },
+                      legend: {
+                          orient: 'vertical',
+                          left: 'left',
+                          data: ["总咨询数", "总接待数", "总投诉数"]
+                      },
+                      series: [
+                          {
+                              name: '访问来源',
+                              type: 'pie',
+                              radius: '55%',
+                              center: ['50%', '60%'],
+                              data: [
+                                  { value: list[0], name: '总咨询数' },
+                                  { value: list[1], name: '总接待数' },
+                                  { value: list[2], name: '总投诉数' }
+                              ],
+                              itemStyle: {
+                                  emphasis: {
+                                      shadowBlur: 10,
+                                      shadowOffsetX: 0,
+                                      shadowColor: 'rgba(0, 0, 0, 0.5)'
+                                  }
+                              }
+                          }
+                      ]
+                  });
+                })
             },
-            drawCharts() {
+            async drawPieChart() {
+                
+            },
+            async drawCharts() {
                 this.drawColumnChart()
-                this.drawBarChart()
-                this.drawLineChart()
                 this.drawPieChart()
             },
+            
         },
-
+        beforeMount: function() {
+              this.getArea();
+              this.getConsult();
+        },
         mounted: function () {
-            this.drawCharts()
+            
+            setTimeout(() => {
+    
+              //this.getReport();
+              this.drawCharts()
+            }, 1000)
+            
         },
-        updated: function () {
-            this.drawCharts()
-        }
+//         updated: function () {
+//             this.drawCharts()
+//         }
     }
 </script>
 

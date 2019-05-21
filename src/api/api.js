@@ -3,8 +3,8 @@ import axios from 'axios';
 //var qs=require('qs');
 //var instance = axios.create({ headers: {'content-type': 'application/x-www-form-urlencoded'} });
 
-let base = 'http://120.79.9.157:8080/workReport';
-//let base = 'https://www.dingguangroup.com/test/workReport';
+//let base = 'http://120.79.9.157:8080/workReport';
+let base = 'https://www.dingguangroup.com/test/workReport';
 //let base = 'http://39.105.20.207:8888/workReport/';
 let token = sessionStorage.getItem('token');
 let userId = sessionStorage.getItem('adminId');

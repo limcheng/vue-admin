@@ -31,7 +31,7 @@
         rules2: {
           account: [
             { required: true, message: '请输入账号', trigger: 'blur' },
-            { min: 6, max: 16, message: '长度在 6 到 16 个字符', trigger: 'blur' }
+            { min: 6, max: 20, message: '长度在 6 到 20 个字符', trigger: 'blur' }
             //{ validator: validaePass }
           ],
           checkPass: [
@@ -65,7 +65,6 @@
             var loginParams = { username: this.ruleForm2.account, password: this.ruleForm2.checkPass };
             //console.info(requestLogin)
             //axios.post(`http://120.79.9.157:8080/workReport/Admin/login`, loginParams).then(data=>{console.log(data)})
-            console.log(loginParams)
             requestLogin(loginParams).then(res => {
               var that = this
               that.logining = false;
@@ -90,6 +89,7 @@
                 //this.$router.push({ path: '/Report' });
                 that.$router.push({ path: '/Main' });
                 console.log(data.token)
+                axios.defaults.headers.post['Authorization'] = data.token;
                 axios.defaults.headers.common['Authorization'] = data.token;
               }
             }).then(() => {

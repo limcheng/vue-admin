@@ -14,24 +14,23 @@
 				</el-form-item>
 			</el-form>
 		</el-col>
-    <el-col :span="24" class="toolbar">
+    <!-- <el-col :span="24" class="toolbar">
       <div>友情提示： 点击左侧箭头可查看公告内容； 新增时可点击H1/H2编写标题</div>
-    </el-col>
+    </el-col> -->
 		<!--列表-->
 		<el-table :data="notice" highlight-current-row v-loading="listLoading" @selection-change="selsChange" style="width: 100%;">
      <el-table-column  type="expand">
         <template slot-scope="props">
           <el-form label-position="left" class="table-expand">
             <el-form-item>
-              <div v-html="props.row.content.content"></div>
+              <p class="title" v-html="props.row.content.title"></p>
+              <div class="content" v-html="props.row.content.content"></div>
             </el-form-item>
           </el-form>
         </template>
       </el-table-column> 
 			<el-table-column type="index" width="80">
 			</el-table-column>
-    <!--  <el-table-column label="内容" prop="content" min-width="250">
-      </el-table-column> -->
       <el-table-column prop="createTime" label="创建日期" sortable nim-width="115">
       </el-table-column>
       <el-table-column prop="updateTime" label="更新日期" sortable nim-width="115">
@@ -47,30 +46,23 @@
 		</el-table>
   <!--工具条-->
     <el-col :span="24" class="toolbar">
-      <el-pagination layout="prev, pager, next" @current-change="handleCurrentChange" :page-size="20" :total="total" style="float:right;">
+      <el-pagination layout="prev, pager, next" @current-change="handleCurrentChange" :page-size="10" :total="total" style="float:right;">
       </el-pagination>
     </el-col>
 
 		<!--修改界面-->
 		<el-dialog title="修改公告" class="dialog" v-model="editFormVisible" :close-on-click-modal="false" custom-class="dialog">
 			<el-form :model="editForm" label-width="80px" :rules="editFormRules" ref="editForm">
-        <!--使用编辑器-->
+        <el-form-item label="标题">
+        	<el-input placeholder="请填写标题" v-model="editForm.content.title"></el-input>
+        </el-form-item>
         <el-form-item label="内容">
-          <div class="edit_container">
-            <quill-editor 
-              v-model="editForm.content"
-              ref="myQuillEditor"
-              class="editer"
-              @ready="onEditorReady($event)"
-            >
-            </quill-editor>
-          </div>
-        </el-form-item>
-        <el-form-item label="创建时间">
-        	<el-date-picker type="date" placeholder="选择日期" v-model="editForm.createTime"></el-date-picker>
-        </el-form-item>
-        <el-form-item label="更新时间">
-        	<el-date-picker type="date" placeholder="选择日期" v-model="editForm.updateTime"></el-date-picker>
+        	<el-input 
+            type="textarea" 
+            :autosize="{ minRows: 5, maxRows: 10}" 
+            placeholder="请填内容" 
+            v-model="editForm.content.content"
+          ></el-input>
         </el-form-item>
         <el-form-item label="是否展示" prop="status">
           <el-select v-model="editForm.status">
@@ -88,8 +80,19 @@
 		<!--新增界面-->
 		<el-dialog title="新增" v-model="addFormVisible" :close-on-click-modal="false">
 			<el-form :model="addForm" label-width="80px" :rules="addFormRules" ref="addForm">
-        <!--使用编辑器-->
+        <el-form-item label="标题">
+        	<el-input placeholder="请填写标题" v-model="addForm.content.title"></el-input>
+        </el-form-item>
         <el-form-item label="内容">
+        	<el-input 
+            type="textarea" 
+            :autosize="{ minRows: 5, maxRows: 10}" 
+            placeholder="请填内容" 
+            v-model="addForm.content.content"
+          ></el-input>
+        </el-form-item>
+        <!--使用编辑器-->
+        <!-- <el-form-item label="内容">
           <div class="edit_container">
             <quill-editor 
               v-model="addForm.content"
@@ -99,10 +102,10 @@
             >
             </quill-editor>
           </div>
-        </el-form-item>
-        <el-form-item label="创建时间">
+        </el-form-item> -->
+       <!-- <el-form-item label="创建时间">
         	<el-date-picker type="date" placeholder="选择日期" v-model="addForm.createTime"></el-date-picker>
-        </el-form-item>
+        </el-form-item> -->
         <el-form-item label="是否展示" prop="status">
           <el-select v-model="addForm.status">
             <el-option label="展示" value="1"></el-option>
@@ -136,7 +139,8 @@
 				},
 				notice: [],
 				total: 0,
-				page: 1,
+				index: 1,
+        size: 10,
 				listLoading: false,
 				sels: [],//列表选中列
         token: sessionStorage.getItem('token'),
@@ -153,8 +157,8 @@
 				//编辑界面数据
 				editForm: {
           content: '',
-          createTime: '',
-          updateTime: '',
+          //createTime: '',
+          //updateTime: '',
           editorOption: {},
           status: '',
 				},
@@ -169,8 +173,8 @@
 				},
 				//新增界面数据
 				addForm: {
-					content: '',
-          createTime: '',
+					content: {"title": "" , "content": ""},
+          //createTime: '',
           editorOption: {},
           status: '',
 				}
@@ -185,31 +189,34 @@
       onEditorReady(editor) {
       },
 			handleCurrentChange(val) {
-				this.page = val;
+				this.index = val;
 				this.getNotice();
 			},
 			//获取公告列表
 			getNotice() {
-        //console.log(this.token)
 				let para = {
-					//page: this.page,
+// 					index: (this.index-1)*this.size,
+//           size: this.size
 				};
         if(this.filters.createTime != '') {
           para.createTime = this.filters.createTime
           para.createTime = (!para.createTime || para.createTime == '') ? '' : util.formatDate.format(new Date(para.createTime),'yyyy-MM-dd');
         }
+        console.log(para)
 				this.listLoading = true;
-				//NProgress.start();
 				getNoticeListPage(para).then((res) => {
-          //console.log(res);
+          this.listLoading = false;
+          let code = res.data.code;
+          this.total = res.data.total;
+          if(code == "666") {
+            that.$router.push({ path: '/Login' });
+          }
           let data = res.data.data;         
 					this.notice = data;
-					this.listLoading = false;
           let noticeList = this.notice;
-          console.log(noticeList)
           for(let item of noticeList) {
             item.content = JSON.parse(item.content)
-            //console.log(typeof item.content)
+            //this.editForm.content.content = item.content.content.replace(/\r\n/g, '<br/>').replace(/\n/g, '<br/>').replace(/\s/g, '&nbsp;')
             item.status = item.status == 0?"隐藏": "展示";
             item.createTime = (!item.createTime || item.createTime == '') ? '' : util.formatDate.format(new Date(item.createTime), 'yyyy-MM-dd') || '';
             item.updateTime = (!item.updateTime || item.updateTime == '') ? '' : util.formatDate.format(new Date(item.updateTime), 'yyyy-MM-dd') || '';
@@ -242,14 +249,15 @@
 			handleEdit: function (index, row) {
 				this.editFormVisible = true;
 				this.editForm = Object.assign({}, row);
-        this.editForm.content = '';
+        let content = this.editForm.content
+        this.editForm.content.content = content.content.replace(/<br\s*\/?>/gi,"\r\n")
+        //.replace(/'&nbsp;'/g, '/s');
 			},
 			//显示新增界面
 			handleAdd: function () {
 				this.addFormVisible = true;
 				this.addForm = {
-					title: "",
-          content: "",
+          content: {"title": "" , "content": ""},
           createTime: "",
 				};
 			},
@@ -262,6 +270,7 @@
 						that.$confirm('确认提交吗？', '提示', {}).then(() => {
 							that.editLoading = true;
 							let para = Object.assign({}, that.editForm);  
+              console.log(para)
               let content = {};
               let status = para.status;
               let typeofstatus = parseFloat(status).toString() 
@@ -272,11 +281,11 @@
                   para.status = 0;
                 }
               }
-              content.content = para.content;
+              content = para.content;
+              para.content.content = para.content.content.replace(/\r\n/g, '<br/>').replace(/\n/g, '<br/>').replace(/\s/g, '&nbsp;')
               para.content = JSON.stringify(content);
               para.token = that.token;
-							para.createTime = (!para.createTime || para.createTime == '') ? '' : util.formatDate.format(new Date(para.createTime), 'yyyy-MM-dd');
-              para.updateTime = (!para.updateTime || para.updateTime == '') ? '' : util.formatDate.format(new Date(para.updateTime), 'yyyy-MM-dd');
+							// para.createTime = (!para.createTime || para.createTime == '') ? '' : util.formatDate.format(new Date(para.createTime), 'yyyy-MM-dd');
 							editNotice(para).then((res) => {
 								that.editLoading = false;
 								that.$message({
@@ -300,10 +309,11 @@
 							let para = Object.assign({}, this.addForm);
               //把标题和内容拼接
               let content = {};
-              content.content = para.content;
+              para.content.content = para.content.content.replace(/\r\n/g, '<br/>').replace(/\n/g, '<br/>').replace(/\s/g, '&nbsp;')
+              content = para.content;
               para.content = JSON.stringify(content);
               para.token = this.token;
-							para.createTime = (!para.createTime || para.createTime == '') ? '' : util.formatDate.format(new Date(para.createTime), 'yyyy-MM-dd');
+							// para.createTime = (!para.createTime || para.createTime == '') ? '' : util.formatDate.format(new Date(para.createTime), 'yyyy-MM-dd');
 							addNotice(para).then((res) => {
 								this.addLoading = false;
 								//NProgress.done();
@@ -324,17 +334,22 @@
 			},
 		},
     computed: {
-      editor() {
-        return this.$refs.myQuillEditor.quill
-      }
+//       editor() {
+//         return this.$refs.myQuillEditor.quill
+//       }
     },
 		mounted() {
+      let user = sessionStorage.getItem("user");
+      let role = JSON.parse(user).role;
+      if(role != 0) {
+        this.$router.push({ path: '/noRole' });
+      }
 			this.getNotice();
 		},
-    components: {
-    //使用编辑器
-      quillEditor
-    }
+//     components: {
+//     //使用编辑器
+//       quillEditor
+//     }
 	}
 
 </script>
@@ -342,5 +357,13 @@
 <style scoped>
 .dialog {
   width: 100%;
+}
+.title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: blod;
+}
+.content {
+  color: #666;
 }
 </style>

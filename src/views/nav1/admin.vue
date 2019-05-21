@@ -1,7 +1,7 @@
 <template>
 	<section>
 		<!--工具条-->
-		<el-col :span="24" class="toolbar" v-if="isrole" style="padding-bottom: 0px;">
+		<el-col :span="24" class="toolbar" style="padding-bottom: 0px;">
 			<el-form :inline="true" :model="filters">
 				<!-- <el-form-item>
 					<el-input v-model="filters.name" placeholder="请输入管理员名称"></el-input>
@@ -31,10 +31,19 @@
 			</el-table-column>
 			<el-table-column label="创建时间" prop="createTime">
 			</el-table-column>
-			<el-table-column label="操作" width="150" v-if="isrole">
+			<el-table-column label="操作" width="150">
 				<template scope="scope">
-					<el-button size="small" @click="handleEdit(scope.$index, scope.row)">编辑</el-button>
-					<el-button type="danger" size="small" @click="handleDel(scope.$index, scope.row)">删除</el-button>
+					<el-button 
+          size="small" 
+          type="warning"
+          @click="handleEdit(scope.$index, scope.row)"
+          >修改</el-button>
+					<el-button 
+            type="danger" 
+            size="small"
+            :disabled="scope.row.role == 0"
+            @click="handleDel(scope.$index, scope.row)"
+          >删除</el-button>
 				</template>
 			</el-table-column>
 		</el-table>
@@ -42,7 +51,12 @@
 		<!--工具条-->
 		<el-col :span="24" class="toolbar">
 <!-- 			<el-button type="danger" @click="batchRemove" :disabled="this.sels.length===0">批量删除</el-button> -->
-			<el-pagination layout="prev, pager, next" @current-change="handleCurrentChange" :page-size="20" style="float:right;">
+			<el-pagination
+        layout="prev, pager, next"
+        @current-change="handleCurrentChange" 
+        :page-size="20" 
+        :total="total"
+        style="float:right;">
 			</el-pagination>
 		</el-col>
 
@@ -52,13 +66,13 @@
 				<el-form-item label="姓名" prop="name">
 					<el-input v-model="editForm.name" auto-complete="off"></el-input>
 				</el-form-item>
-        <el-form-item label="登录账户" prop="username">
+        <el-form-item label="登录账户" disabled prop="username">
         	<el-input v-model="editForm.username" auto-complete="off"></el-input>
         </el-form-item>
         <el-form-item label="密码" prop="password">
         	<el-input type="password" v-model="editForm.password" auto-complete="off"></el-input>
         </el-form-item>
-        <el-form-item label="区域" prop="area">
+        <el-form-item label="区域" prop="area" v-if="isSupAdmin">
         	<el-select v-model="editForm.area" placeholder="请选择活动区域">
         	  <el-option v-for="item in areaList" 
         	             :key="item.id" 
@@ -102,12 +116,7 @@
 					  </el-option>
 					</el-select>
 				</el-form-item>
-<!--        <el-form-item label="权限" prop="role">
-        	<el-select v-model="addForm.role" placeholder="请选择管理员权限">
-        	  <el-option label="超级管理员" value="0"></el-option>
-            <el-option label="管理员" value="1"></el-option>
-        	</el-select>
-        </el-form-item> -->
+
 				<el-form-item label="创建时间">
 					<el-date-picker type="date" placeholder="选择日期" v-model="addForm.createTime"></el-date-picker>
 				</el-form-item>
@@ -129,13 +138,16 @@
 		data() {
 			return {
 				filters: {
-					name: ''
+					name: '',
+          size: 20,
 				},
+        isSupAdmin: true,
 				Admin: [],
         areaList: null,
         phone: '',
 				total: 0,
-				page: 1,
+				index: 1,
+        size: 20,
 				listLoading: false,
         isrole: false,
 				sels: [],//列表选中列
@@ -144,8 +156,8 @@
 				editLoading: false,
 				editFormRules: {
 					name: [
-						{ required: true, message: '请输入姓名', trigger: 'blur' }
-					]
+						{ required: true, message: '请输入姓名', trigger: 'blur' },
+					],
 				},
 				//编辑界面数据
 				editForm: {
@@ -162,11 +174,14 @@
 				addLoading: false,
 				addFormRules: {
 					name: [
-						{ required: true, message: '请输入姓名', trigger: 'blur' }
+						{ required: true, message: '请输入姓名', trigger: 'blur' },
 					],
           phone: { required: true, message: '请输入手机号码', trigger: 'blur' },
           area: { required: true, message: '请输入区域', trigger: 'blur' },
-          username: { required: true, message: '请输入登录账户名', trigger: 'blur' },
+          username: [
+            { required: true, message: '请输入登录账户名', trigger: 'blur' },
+            { min: 6, max: 20, message: '长度在 6 到 20 个字符', trigger: 'blur' }
+          ],
           password: { required: true, message: '请输入登录密码', trigger: 'blur' },
 				},
 				//新增界面数据
@@ -183,40 +198,58 @@
 		},
 		methods: {
 			handleCurrentChange(val) {
-				this.page = val;
+				this.index = val;
 				this.getAdmin();
 			},
+      //获取地区列表
+      getArea() {
+        let para = {
+          name: this.filters.name,
+        };
+        //NProgress.start();
+        getAreaList().then((res) => {
+          let list = res.data.data
+          this.areaList = list;
+        });
+      },
 			//获取管理员列表
 			getAdmin() {
 				let para = {
-					page: this.page,
-					name: this.filters.name
+					index: (this.index-1)*this.size, 
+					size: this.size,
 				};
         let user = sessionStorage.getItem("user");
-        let role = JSON.parse(user).role;
-        
+        //let role = JSON.parse(user).role;
 				this.listLoading = true;
 				getAdminListPage(para).then((res) => {
+          this.listLoading = false;
           let areaList = this.areaList
           let admin = res.data.data
-					this.listLoading = false;
-          if(role == 0) {
-            this.isrole = true;
-            this.Admin = admin;
-          }else{
-            this.$notify.error({
-              title: '错误',
-              message: '您权限不够，无法访问'
-            });
+          let code = res.data.code;
+          this.total = res.data.total;
+          if(code == "666") {
+            that.$router.push({ path: '/Login' });
           }
+          this.Admin = admin;
+//           if(role == 0) {
+//             this.isrole = true;
+//             this.Admin = admin;
+//           }else{
+//             this.$notify.error({
+//               title: '错误',
+//               message: '您的权限不够，无法访问'
+//             });
+//           }
           //转换数据格式
           for (let item of admin) {
             let contents = item.content
             let area = item.area
-            let consult = item.campsite
-            for(let areaItem of areaList) {
-              if(areaItem.id == area) {
-                item.area = areaItem.name
+            //let consult = item.campsite
+            if(this.areaList) {
+              for(let areaItem of this.areaList) {
+                if(areaItem.id == area) {
+                  item.area = areaItem.name
+                }
               }
             }
             item.createTime = (!item.createTime || item.createTime == '') ? '' : util.formatDate.format(new Date(item.createTime), 'yyyy-MM-dd');
@@ -230,25 +263,9 @@
               item.status = '审核通过'
             }
           }
-          console.log(this.Admin)
-					//NProgress.done();
 				});
 			},
-			//获取地区列表
-			getArea() {
-			  let para = {
-			    page: this.page,
-			    name: this.filters.name,
-			  };
-			  //NProgress.start();
-			  getAreaList().then((res) => {
-			    console.log(res.data.data)
-			    let list = res.data.data
-
-			    this.areaList = list;
-			    //NProgress.done();
-			  });
-			},
+			
       //删除
 			handleDel: function (index, row) {
 				this.$confirm('确认删除该记录吗?', '提示', {
@@ -275,6 +292,12 @@
 			handleEdit: function (index, row) {
 				this.editFormVisible = true;
 				this.editForm = Object.assign({}, row);
+        console.log(row)
+        if (row.role === 0) {
+          this.isSupAdmin = false;
+        }else {
+          this.isSupAdmin = true;
+        }
 			},
 			//显示新增界面
 			handleAdd: function () {
@@ -292,11 +315,21 @@
 			//编辑
 			editSubmit: function () {
 				this.$refs.editForm.validate((valid) => {
+          var that = this
 					if (valid) {
 						this.$confirm('确认提交吗？', '提示', {}).then(() => {
 							this.editLoading = true;
-							//NProgress.start();
 							let para = Object.assign({}, this.editForm);
+              console.log(para)
+              var admin = sessionStorage.getItem("user");
+              //var role = JSON.parse(admin).role;
+              //para.role = role;
+              for(let item of this.areaList) {
+                if(para.area === item.name) {
+                  para.area = item.id;
+                }
+              }
+              para.token = JSON.parse(admin).token;
 							para.createTime = (!para.createTime || para.createTime == '') ? '' : util.formatDate.format(new Date(para.createTime), 'yyyy-MM-dd');
 							editAdmin(para).then((res) => {
 								this.editLoading = false;
@@ -319,8 +352,12 @@
 					if (valid) {
 						this.$confirm('确认提交吗？', '提示', {}).then(() => {
 							this.addLoading = true;
-							//NProgress.start();
 							let para = Object.assign({}, this.addForm);
+//               for(let item of this.areaList) {
+//                 if(para.area = item.name) {
+//                   para.area = item.id
+//                 }
+//               }
 							para.cteateTime = (!para.cteateTime || para.cteateTime == '') ? '' : util.formatDate.format(new Date(para.cteateTime), 'yyyy-MM-dd');
 							addAdmin(para).then((res) => {
 								this.addLoading = false;
@@ -363,9 +400,20 @@
 // 				});
 // 			}
 		},
-		mounted() {
-			this.getAdmin();
+    beforeMount() {
       this.getArea();
+    },
+		mounted() {
+      var that = this;
+      let user = sessionStorage.getItem("user");
+      let role = JSON.parse(user).role;
+      if(role != 0) {
+        this.$router.push({ path: '/noRole' });
+      }
+      setTimeout(function() {
+        that.getAdmin();
+      },500)
+      
 		}
 	}
 

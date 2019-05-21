@@ -23,11 +23,11 @@ module.exports = {
   },
   dev: {
     env: require('./dev.env'),
-    port: 8080,
+    port: 8084,
     autoOpenBrowser: true,
     assetsSubDirectory: 'static',
-    //assetsPublicPath: '/',
-    assetsPublicPath: '/zhoushan/',
+    assetsPublicPath: '/',
+    //assetsPublicPath: '/zhoushan/',
     proxyTable: {
 //       '/api': {
 //         target: 'http://120.79.9.157:8080/workReport',

@@ -29,6 +29,19 @@
         	  </el-option>
         	</el-select>
         </el-form-item>
+        <el-form-item label="用户状态" prop="status">
+          <el-select 
+            v-model="filters.status" 
+            clearable
+            placeholder="请选择用户状态"
+          >
+            <el-option label="审核中" value="0"></el-option>
+          	<el-option label="离职" value="-2"></el-option>
+          	<el-option label="未通过审核" value="-1"></el-option>
+            <el-option label="审核通过" value="1"></el-option>
+            <el-option label="全部" value=" "></el-option>
+          </el-select>
+        </el-form-item>
 				<el-form-item>
 					<el-button type="primary" v-on:click="getUsers">查询</el-button>
 				</el-form-item>
@@ -37,39 +50,31 @@
 				</el-form-item> -->
 			</el-form>
 		</el-col>
-
+    <el-col>
+      <div class="tip"> 默认显示审核中的用户，如需显示其他状态的用户，请选择用户状态查询</div>
+    </el-col>
 		<!--列表-->
 		<el-table :data="users" highlight-current-row v-loading="listLoading" @selection-change="selsChange" style="width: 100%;">
       <el-table-column  type="expand">
         <template slot-scope="props">
           <el-form label-position="left">
-            <el-form-item label="总咨询数:" sortable>
+            <el-form-item label="累计咨询数:" sortable>
               {{ props.row.complaintNum }}
             </el-form-item>
-            <el-form-item label="总接待数:" sortable>
+            <el-form-item label="累计接待数:" sortable>
               {{ props.row.receptionNum }}
             </el-form-item>
-            <el-form-item label="总投诉数:" sortable>
+            <el-form-item label="累计投诉数:" sortable>
               {{ props.row.consultNum }}
             </el-form-item>
-            <el-form-item label="提交数:" sortable>
+            <el-form-item label="累计提交报表数:" sortable>
               {{ props.row.logNum }}
             </el-form-item>
-            <!-- <el-form-item label="内容:" id="form-table">
-              <el-table :data="content" highlight-current-row style="width: 100%;">
-                <el-table-column  prop="name" label="投诉内容" sortable></el-table-column>
-                <el-table-column  prop="name" label="反馈内容" sortable></el-table-column>
-              </el-table>
-            </el-form-item> -->
           </el-form>
         </template>
       </el-table-column>
-			<!-- <el-table-column type="selection" width="55">
-			</el-table-column> -->
 			<el-table-column type="index" width="60">
 			</el-table-column>
-<!--      <el-table-column type="id" width="120">
-      </el-table-column> -->
 			<el-table-column prop="name" label="姓名" sortable>
 			</el-table-column>
       <el-table-column prop="phone" label="电话" min-width="120">
@@ -92,8 +97,19 @@
       </el-table-column>
 			<el-table-column label="操作" min-width="240">
 				<template scope="scope">
-          <el-button type="success" size="small" @click="pass(scope.$index, scope.row)">通过</el-button>
-          <el-button size="small" @click="deny(scope.$index, scope.row)">不过</el-button>
+          <el-button
+             type="success" 
+             size="small" 
+             :disabled="scope.row.status == '审核通过' || scope.row.status == '审核不过' || scope.row.status == '离职'"
+             @click="pass(scope.$index, scope.row)"
+           >通过
+           </el-button>
+          <el-button 
+            size="small" 
+            :disabled="scope.row.status == '审核通过' || scope.row.status == '审核不过' || scope.row.status == '离职'"
+            @click="deny(scope.$index, scope.row)"
+          >不过
+          </el-button>
 					<el-button type="warning" size="small" @click="handleEdit(scope.$index, scope.row)">修改</el-button>
 					<el-button type="danger" size="small" @click="handleDel(scope.$index, scope.row)">删除</el-button>
 				</template>
@@ -102,7 +118,6 @@
 
 		<!--工具条-->
 		<el-col :span="24" class="toolbar">
-			<!-- <el-button type="danger" @click="batchRemove" :disabled="this.sels.length===0">批量删除</el-button> -->
 			<el-pagination
         layout="prev, pager, next"
         @current-change="handleCurrentChange"
@@ -140,16 +155,16 @@
 					  </el-option>
 					</el-select>
 				</el-form-item>
-        <el-form-item label="咨询数" prop="consultNum">
+        <el-form-item label="累计咨询数" prop="consultNum">
         	<el-input v-model="editForm.consultNum" auto-complete="off"></el-input>
         </el-form-item>
-        <el-form-item label="接待数" prop="receptionNum">
+        <el-form-item label="累计接待数" prop="receptionNum">
         	<el-input v-model="editForm.receptionNum" auto-complete="off"></el-input>
         </el-form-item>
-        <el-form-item label="投诉数" prop="complaintNum">
+        <el-form-item label="累计投诉数" prop="complaintNum">
         	<el-input v-model="editForm.complaintNum" auto-complete="off"></el-input>
         </el-form-item>
-        <el-form-item label="提交数" prop="logNum">
+        <el-form-item label="累计提交报表数" prop="logNum">
         	<el-input v-model="editForm.logNum" auto-complete="off"></el-input>
         </el-form-item>
         <!-- <el-form-item label="投诉内容"  prop="consultContent">
@@ -161,7 +176,7 @@
         <el-form-item label="状态" prop="status">
           <el-select v-model="editForm.status" placeholder="请选择用户状态">
           	<el-option label="离职" value="-2"></el-option>
-          	<el-option label="未通过审核" value="-1"></el-option>
+          	<el-option label="审核不过" value="-1"></el-option>
             <el-option label="审核中" value="0"></el-option>
             <el-option label="审核通过" value="1"></el-option>
           </el-select>
@@ -232,7 +247,9 @@
 		data() {
 			return {
 				filters: {
-					name: ''
+          area: '',
+					consult: '',
+          status: '',
 				},
         area: '',
 				users: [],
@@ -241,7 +258,7 @@
         campsiteList: [],
 				total: 0,
 				index: 1,
-        //size: 20,
+        size: 20,
 				listLoading: false,
         showArea: false,
 				sels: [],//列表选中列
@@ -304,57 +321,63 @@
 		},
 		methods: {
 			handleCurrentChange(val) {
-        console.log(val)
 				this.index = val;
 				this.getUsers();
 			},
 			//获取用户列表
 			getUsers() {
 				let para = {
-          index: this.index, 
-          //size: this.size,
+          index: (this.index-1)*this.size, 
+          size: this.size,
         };
+        let user = sessionStorage.getItem("user");
+        let role = JSON.parse(user).role
+        if(role === 0) {
+          this.showArea = true;
+        }else {
+          let area = JSON.parse(user).area;
+          para.area = area;
+        }
         if(this.filters.area != '') {
           para.area = this.filters.area
         }
         if(this.filters.consult != '') {
-          para.consult = this.filters.consult
+          para.campsite = this.filters.consult
+        }
+        if(this.filters.status != '') {
+          para.status = this.filters.status
+        }else {
+          para.status = 0
         }
 				this.listLoading = true;
-				//NProgress.start();
 				getUserListPage(para).then((res) => {
+          this.listLoading = false;
           let code = res.data.code;
+          if(code == "666") {
+            that.$router.push({ path: '/Login' });
+          }
           if(code == 201) {
-            console.log(201)
-            this.$notify.error({
-              title: '错误',
-              message: '请求内容为空'
-            });
+            this.users = [];
           }
           this.total = res.data.total;
           let data = res.data.data;
           let areaList = this.areaList
           let consultList = this.consultList
-					this.listLoading = false;
-          let user = sessionStorage.getItem("user");
-          let role = JSON.parse(user).role
-          let list = [];
-          console.log(data)
-          if(role === 0) {
-            list = data;
-            this.showArea = true;
-          }else {
-            let area = JSON.parse(user).area;
-            for(let item of data) {
-              if(item.area === area) {
-                list.push(item);
-              }
-            }
-            //
-          }
-          console.log(list)
+//           let user = sessionStorage.getItem("user");
+//           let role = JSON.parse(user).role
+          let list = data;
+//           if(role === 0) {
+//             list = data;
+//             this.showArea = true;
+//           }else {
+//             let area = JSON.parse(user).area;
+//             for(let item of data) {
+//               if(item.area === area) {
+//                 list.push(item);
+//               }
+//             }
+//           }
           for (let item of list) {
-            console.log(item)
             let contents = item.content
             let area = item.area
             let consult = item.campsite
@@ -394,7 +417,6 @@
           name: this.filters.name,
         };
         getAreaList().then((res) => {
-          //console.log(res.data.data)
           let list = res.data.data
           this.total = list.total;
           this.areaList = list;
@@ -408,24 +430,19 @@
           name: this.filters.name,
         };
         getPointList(para).then((res) => {
-          //console.log(res.data.data)
           let list = res.data.data;
-          //console.log(list)
           this.consultList = list;
           let area = this.area;
           if(area == '') {
             let user = sessionStorage.getItem("user");
             area = JSON.parse(user).area
           }
-          console.log(area)
           let campsite = this.campsiteList;
           for(let item of list) {
             if(item.area === area) {
-              console.log(item.name)
               campsite.push(item);
             }
           }
-          console.log(campsite)
         });
       },
       chooseArea(e) {
@@ -445,7 +462,6 @@
         para.id = row.id;
         para.status = 1;
         editUser(para).then((res) => {
-          console.log(res)
           this.listLoading = false;
           this.$message({
             message: '审核成功',
@@ -461,7 +477,6 @@
         para.id = row.id;
         para.status = -1;
         editUser(para).then((res) => {
-          console.log(res)
           this.listLoading = false;
           this.$message({
             message: '审核成功',
@@ -521,12 +536,23 @@
 					if (valid) {
 						this.$confirm('确认提交吗？', '提示', {}).then(() => {
 							this.editLoading = true;
-							//NProgress.start();
 							let para = Object.assign({}, this.editForm);
-              
-              //para.token = sessionStorage.getItem("token");
               let status = para.status;
               let typeofstatus = parseFloat(status).toString() 
+              if(this.areaList) {
+                for(let areaItem of this.areaList) {
+                  if(areaItem.name === para.area) {
+                    para.area = areaItem.id
+                  }
+                }
+              }
+              if(this.consultList) {
+                for(let consultItem of this.consultList) {
+                  if(consultItem.name == para.campsite) {
+                    para.campsite = consultItem.id
+                  }
+                }
+              }
               if(typeofstatus == "NaN" ) {
                 if (para.status == '离职') {
                   para.status = -2;
@@ -539,10 +565,9 @@
                 }
               }
 							para.createTime = (!para.createTime || para.createTime == '') ? '' : util.formatDate.format(new Date(para.createTime), 'yyyy-MM-dd');
-							console.log(para)
+              console.log(para)
               editUser(para).then((res) => {
 								this.editLoading = false;
-								//NProgress.done();
 								this.$message({
 									message: '提交成功',
 									type: 'success'
@@ -561,12 +586,10 @@
 					if (valid) {
 						this.$confirm('确认提交吗？', '提示', {}).then(() => {
 							this.addLoading = true;
-							//NProgress.start();
 							let para = Object.assign({}, this.addForm);
 							para.createTime = (!para.createTime || para.createTime == '') ? '' : util.formatDate.format(new Date(para.createTime), 'yyyy-MM-dd');
 							addUser(para).then((res) => {
 								this.addLoading = false;
-								//NProgress.done();
 								this.$message({
 									message: '提交成功',
 									type: 'success'
@@ -582,38 +605,42 @@
 			selsChange: function (sels) {
 				this.sels = sels;
 			},
-			//批量删除
-			batchRemove: function () {
-				var ids = this.sels.map(item => item.id).toString();
-				this.$confirm('确认删除选中记录吗？', '提示', {
-					type: 'warning'
-				}).then(() => {
-					this.listLoading = true;
-					//NProgress.start();
-					let para = { ids: ids };
-					batchRemoveUser(para).then((res) => {
-						this.listLoading = false;
-						//NProgress.done();
-						this.$message({
-							message: '删除成功',
-							type: 'success'
-						});
-						this.getUsers();
-					});
-				}).catch(() => {
-
-				});
-			}
+// 			//批量删除
+// 			batchRemove: function () {
+// 				var ids = this.sels.map(item => item.id).toString();
+// 				this.$confirm('确认删除选中记录吗？', '提示', {
+// 					type: 'warning'
+// 				}).then(() => {
+// 					this.listLoading = true;
+// 					//NProgress.start();
+// 					let para = { ids: ids };
+// 					batchRemoveUser(para).then((res) => {
+// 						this.listLoading = false;
+// 						//NProgress.done();
+// 						this.$message({
+// 							message: '删除成功',
+// 							type: 'success'
+// 						});
+// 						this.getUsers();
+// 					});
+// 				}).catch(() => {
+// 
+// 				});
+// 			}
 		},
 		mounted() {
-			this.getUsers();
       this.getArea();
       this.getConsult();
+			this.getUsers();
 		}
 	}
 
 </script>
 
 <style scoped>
-
+.tip {
+  height: 32px;
+  line-height: 32px;
+  color: red;
+}
 </style>

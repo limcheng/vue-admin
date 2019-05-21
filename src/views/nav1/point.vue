@@ -6,6 +6,7 @@
 				<el-form-item label="区域" prop="area" v-if="showArea">
 					<el-select 
 				    v-model="filters.area" 
+            clearable
 				    placeholder="全部" 
 				    @change="chooseArea"
 				  >
@@ -31,8 +32,6 @@
 			</el-table-column>
 			<el-table-column type="index" width="80">
 			</el-table-column>
-<!-- 			<el-table-column prop="id" label="id" width="300" sortable>
-			</el-table-column> -->
       <el-table-column prop="name" label="名称" sortable>
       </el-table-column>
 			<el-table-column prop="area" label="所属区域" sortable>
@@ -43,7 +42,7 @@
 			</el-table-column>
 			<el-table-column label="操作" >
 				<template scope="scope">
-					<el-button size="small" @click="handleEdit(scope.$index, scope.row)">编辑</el-button>
+					<el-button size="small" @click="handleEdit(scope.$index, scope.row)">修改</el-button>
 					<el-button type="danger" size="small" @click="handleDel(scope.$index, scope.row)">删除</el-button>
 				</template>
 			</el-table-column>
@@ -52,7 +51,12 @@
 		<!-- 工具条 -->
 		<el-col :span="24" class="toolbar">
 <!-- 			<el-button type="danger" @click="batchRemove" :disabled="this.sels.length===0">批量删除</el-button> -->
-			<el-pagination layout="prev, pager, next" @current-change="handleCurrentChange" :page-size="20" :total="total" style="float:right;">
+			<el-pagination 
+        layout="prev, pager, next" 
+        @current-change="handleCurrentChange" 
+        :page-size="20" 
+        :total="total" 
+        style="float:right;">
 			</el-pagination>
 		</el-col>
 
@@ -72,7 +76,11 @@
 					</el-select>
 				</el-form-item>
         <el-form-item label="人数">
-        	<el-input-number v-model="editForm.peopleNum" :min="0" :max="200"></el-input-number>
+        	<el-input-number
+           v-model="editForm.peopleNum"
+           :min="0" 
+           :max="200"
+          ></el-input-number>
         </el-form-item>
 				<el-form-item label="创建时间">
 					<el-col :span="11">
@@ -94,7 +102,6 @@
 					<el-input v-model="addForm.name"></el-input>
 				</el-form-item>
 				<el-form-item label="所属区域">
-          <!-- <el-input v-model="editForm.area"></el-input> -->
 					<el-select
             v-model="addForm.area"
             clearable 
@@ -112,9 +119,6 @@
 						<el-date-picker type="date" placeholder="选择日期" v-model="addForm.createTime" style="width: 100%;"></el-date-picker>
 					</el-col>
 					<el-col class="line" :span="2">-</el-col>
-<!-- 					<el-col :span="11">
-						<el-time-picker type="fixed-time" placeholder="选择时间" v-model="addForm.date2" style="width: 100%;"></el-time-picker>
-					</el-col> -->
 				</el-form-item>
 			</el-form>
 			<div slot="footer" class="dialog-footer">
@@ -149,7 +153,8 @@
 				points: [],
         areaList: [],
 				total: 0,
-				page: 1,
+				index: 1,
+        size: 20,
         showArea: false,
 				listLoading: false,
 				sels: [],//列表选中列
@@ -188,14 +193,13 @@
 		},
 		methods: {
 			handleCurrentChange(val) {
-				this.page = val;
+				this.index = val;
 				this.getPoint();
 			},
        //获取地区列表
       getArea() {
         var that = this;
         let para = {
-          page: that.page,
           name: that.filters.name,
         };
         getAreaList(para).then((res) => {
@@ -217,7 +221,11 @@
 			//获取咨询点列表
 			getPoint() {
         var that = this;
-				let para = {};
+        that.listLoading = true;
+				let para = {
+          index: (this.index-1)*this.size, 
+          size: this.size,
+        };
         if(that.filters.area != '') {
           para.area = that.filters.area;
         }
@@ -225,15 +233,20 @@
           para.createTime = that.filters.createTime;
           para.createTime = (!para.createTime || para.createTime == '') ? '' : util.formatDate.format(new Date(para.createTime), 'yyyy-MM-dd'); 
         }
-				that.listLoading = true;
+				for(let item of this.areaList) {
+          if(para.area == item.name) {
+            para.area = item.id
+          }
+        }
 				getPointListPage(para).then((res) => {
           this.listLoading = false;
           let code = res.data.code;
+          this.total = res.data.total;
+          if(code == "666") {
+            that.$router.push({ path: '/Login' });
+          }
           if(code == 201) {
-            that.$notify.error({
-              title: '错误',
-              message: '请求内容为空'
-            });
+            this.points = [];
           }
           let data = res.data.data;
           let user = sessionStorage.getItem("user");
@@ -321,6 +334,11 @@
 							//NProgress.start();
 							let para = Object.assign({}, this.editForm);
               //console.log(para)
+              for(let item of this.areaList) {
+                if(para.area == item.name) {
+                  para.area = item.id
+                }
+              }
 							para.createTime = (!para.createTime || para.createTime == '') ? '' : util.formatDate.format(new Date(para.createTime), 'yyyy-MM-dd');
 							editPoint(para).then((res) => {
 								this.editLoading = false;
@@ -366,8 +384,12 @@
 			},
 		},
 		mounted() {
+      var that = this
       this.getArea();
-      this.getPoint();
+      setTimeout(function() {
+         that.getPoint();
+      },500)
+     
 		}
 	}
 

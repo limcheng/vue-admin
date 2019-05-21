@@ -3,12 +3,9 @@
 		<!--工具条-->
 		<el-col :span="24" class="toolbar" style="padding-bottom: 0px;">
 			<el-form :inline="true" :model="filters">
-	<!-- 			<el-form-item>
-					<el-input v-model="filters.name" placeholder="请输入地区名称"></el-input>
-				</el-form-item> -->
-				<el-form-item>
+<!-- 				<el-form-item>
 					<el-button type="primary" v-on:click="getArea">查询</el-button>
-				</el-form-item>
+				</el-form-item> -->
 				<el-form-item>
 					<el-button type="primary" @click="handleAdd">新增</el-button>
 				</el-form-item>
@@ -21,32 +18,31 @@
 			</el-table-column>
 			<el-table-column type="index" width="60">
 			</el-table-column>
-			<el-table-column prop="id" label="id" sortable>
-			</el-table-column>
 			<el-table-column prop="name" label="名称" sortable>
 			</el-table-column>
 			<el-table-column label="操作" width="200">
 				<template scope="scope">
-                    <!-- <el-button type="promary" size="small" @click="handleDel(scope.$index, scope.row)">查看</el-button> -->
+     <!-- <el-button type="promary" size="small" @click="handleDel(scope.$index, scope.row)">查看</el-button> -->
 					<el-button size="small" @click="handleEdit(scope.$index, scope.row)">修改</el-button>
-                    <el-button type="danger" size="small" @click="handleDel(scope.$index, scope.row)">删除</el-button>
+          <el-button type="danger" size="small" @click="handleDel(scope.$index, scope.row)">删除</el-button>
 				</template>
 			</el-table-column>
 		</el-table>
 
 		<!--工具条-->
 		<el-col :span="24" class="toolbar">
-<!-- 			<el-button type="danger" @click="batchRemove" :disabled="this.sels.length===0">批量删除</el-button> -->
-			<el-pagination layout="prev, pager, next" @current-change="handleCurrentChange" :page-size="20" :total="total" style="float:right;">
+			<el-pagination 
+        layout="prev, pager, next" 
+        @current-change="handleCurrentChange" 
+        :page-size="20" 
+        :total="total" 
+        style="float:right;">
 			</el-pagination>
 		</el-col>
 
 		<!--编辑界面-->
 		<el-dialog title="编辑" v-model="editFormVisible" :close-on-click-modal="false">
 			<el-form :model="editForm" label-width="80px" :rules="editFormRules" ref="editForm">
-               <el-form-item label="id" prop="id">
-                	<el-input v-model="editForm.id" auto-complete="off" disabled></el-input>
-                </el-form-item>
 				<el-form-item label="地区名" prop="name">
 					<el-input v-model="editForm.name" auto-complete="off"></el-input>
 				</el-form-item>
@@ -74,7 +70,6 @@
 
 <script>
 	import util from '../../common/js/util'
-	//import NProgress from 'nprogress'
 	import { getAreaListPage, removeArea, editArea, addArea } from '../../api/api';
 
 	export default {
@@ -85,7 +80,8 @@
 				},
 				area: [],
 				total: 0,
-				page: 1,
+				index: 1,
+        size: 20,
 				listLoading: false,
 				sels: [],//列表选中列
 
@@ -114,42 +110,39 @@
 				addForm: {
 					name: '',
 				}
-
 			}
 		},
 		methods: {
 			handleCurrentChange(val) {
-				this.page = val;
+				this.inxde = val;
 				this.getArea();
 			},
 			//获取地区列表
 			getArea() {
 				let para = {
-					page: this.page,
-					name: this.filters.name,
+					index: (this.index-1)*this.size, 
+					size: this.size,
 				};
 				this.listLoading = true;
-				//NProgress.start();
 				getAreaListPage(para).then((res) => {
-          console.log(res.data)
-          let list = null;
-          let user = sessionStorage.getItem("user");
-          let role = JSON.parse(user).role
-          if(role === 0) {
-            list = res.data.data;
-          }else {
-            list = [];
-            this.$notify.error({
-              title: '错误',
-              message: '您权限不够，无法访问'
-            });
-          }
-					this.area = list;
-					this.listLoading = false;
-					//NProgress.done();
+          this.listLoading = false;
+          this.total = res.data.total;
+          this.area = res.data.data
+          //let list = null;
+          //let user = sessionStorage.getItem("user");
+          //let role = JSON.parse(user).role
+//           if(role === 0) {
+//             list = res.data.data;
+//           }else {
+//             list = [];
+//             this.$notify.error({
+//               title: '错误',
+//               message: '您权限不够，无法访问'
+//             });
+//           }
+					//this.area = list;
 				});
 			},
-      //查询
       
 			//删除
 			handleDel: function (index, row) {
@@ -157,9 +150,7 @@
 					type: 'warning'
 				}).then(() => {
 					this.listLoading = true;
-					//NProgress.start();
 					let para = { id: row.id };
-          //console.log(para.id)
 					removeArea(para).then((res) => {
             console.log(para,res)
 						this.listLoading = false;
@@ -192,12 +183,9 @@
 					if (valid) {
 						this.$confirm('确认提交吗？', '提示', {}).then(() => {
 							this.editLoading = true;
-							//NProgress.start();
 							let para = Object.assign({}, this.editForm);
-              //console.log(para)
 							editArea(para).then((res) => {
 								this.editLoading = false;
-								//NProgress.done();
 								this.$message({
 									message: '提交成功',
 									type: 'success'
@@ -220,7 +208,6 @@
               console.log(para)
 							addArea(para).then((res) => {
 								this.addLoading = false;
-								//NProgress.done();
 								this.$message({
 									message: '提交成功',
 									type: 'success'
@@ -260,6 +247,11 @@
 // 			}
 		},
 		mounted() {
+      let user = sessionStorage.getItem("user");
+      let role = JSON.parse(user).role;
+      if(role != 0) {
+        this.$router.push({ path: '/noRole' });
+      }
 			this.getArea();
 		}
 	}
