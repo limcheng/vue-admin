@@ -140,36 +140,9 @@
         this.sysUserName = user.name || '';
         this.sysUserAvatar = '../assets/header.jpg';
       }
-//       if(code === 666){
-//         this.$router.push({ path: '/Login' });
-//       }
-      //token失效则自动重新登录，并存储token
-//       if (!token || code === "666") {
-//         console.log(token);
-//         var _this = this;
-//         this.logining = true;
-//         //NProgress.start();
-//         var loginParams = { username: userName, password: pwd };
-//         requestLogin(loginParams).then(data => {
-//           this.logining = false;
-//           //NProgress.done();
-//           let { msg, code, user } = data;
-//           if (code !== 200) {
-//             this.$message({
-//               message: msg,
-//               type: 'error'
-//             });
-//           } else {
-//             console.log(loginParams)
-//             //sessionStorage.setItem('user', JSON.stringify(user));
-//             sessionStorage.setItem('token', data.token);
-//             //this.$router.push({ path: '/echarts' });
-//           }
-//         });
-//     }
+
       axios.interceptors.response.use(function (response) { // ①10010 token过期（30天） ②10011 token无效
-        //console.log(response)
-        //let code = sessionStorage.getItem('code');
+
         if(sessionStorage.getItem('code') === 666) {
           console.log(0)
           router.replace({

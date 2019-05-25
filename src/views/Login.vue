@@ -7,7 +7,7 @@
     <el-form-item prop="checkPass">
       <el-input type="password" v-model="ruleForm2.checkPass" auto-complete="off" placeholder="密码"></el-input>
     </el-form-item>
-    <el-checkbox v-model="checked" checked class="remember" bindtap="remember">记住密码</el-checkbox>
+    <el-checkbox v-model="checked" checked class="remember">记住密码</el-checkbox>
     <el-form-item style="width:100%;">
       <el-button type="primary" style="width:100%;" @click.native.prevent="handleSubmit2" :loading="logining">登录</el-button>
       <el-button type="warning" class="reset" @click.native.prevent="handleReset2">重置</el-button>
@@ -25,8 +25,8 @@
       return {
         logining: false,
         ruleForm2: {
-          account: '',
-          checkPass: ''
+          account: sessionStorage.getItem("userName") || '',
+          checkPass: sessionStorage.getItem("pwd") || ''
         },
         rules2: {
           account: [
@@ -40,21 +40,23 @@
             //{ validator: validaePass2 }
           ]
         },
-        checked: false
+        checked: true
       };
     },
     methods: {
       handleReset2() {
         this.$refs.ruleForm2.resetFields();
       },
-      remember() {
-        if(this.checked === 'true'){
-          this.ruleForm2.account = this.ruleForm2.account,
-          this.ruleForm2.checkPass = this.ruleForm2.checkPass
-        }else {
-          
-        }
-      },
+//       remember() {
+//         if(this.checked){
+//           sessionStorage.setItem('reusername', this.ruleForm2.account)
+//           sessionStorage.setItem('repassword', this.ruleForm2.checkPass)
+//           console.log(this.checked)
+//         }else {
+//           sessionStorage.setItem('reusername', '')
+//           sessionStorage.setItem('repassword', '')
+//         }
+//       },
       handleSubmit2(ev) {
         var _this = this;
         this.$refs.ruleForm2.validate((valid) => {
@@ -104,6 +106,7 @@
     },
     mounted() {
       //this.reload();
+      sessionStorage.setItem("url","https://www.dingguangroup.com/test/workReport/Report/export")
     }
   }
 

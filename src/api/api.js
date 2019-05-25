@@ -5,7 +5,7 @@ import axios from 'axios';
 
 //let base = 'http://120.79.9.157:8080/workReport';
 let base = 'https://www.dingguangroup.com/test/workReport';
-//let base = 'http://39.105.20.207:8888/workReport/';
+
 let token = sessionStorage.getItem('token');
 let userId = sessionStorage.getItem('adminId');
 axios.defaults.timeout = 10000;
@@ -69,9 +69,9 @@ export const addArea = params => { return axios.post(`${base}/Area`, params ); }
 
 //报表
 
-//export const getReportList = params => { return axios.get(`${base}/Report`, {params}); };
+export const getReportExcle = params => { return axios.get(`${base}/Report/export`, {params}); };
 
-export const getReportPage = params => { return axios.get(`${base}/Report`, {params} ); };
+export const getReportPage = params => { return axios.get(`${base}/Report`, {params}); };
 
 export const removeReport = params => { return axios.delete(`${base}/Report/${params}`); };
 
